@@ -3,7 +3,8 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -25,10 +26,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Android SDK components
-        run: sdkmanager "platforms;android-35" "b
-
-Павел:
-uild-tools;35.0.0"
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
