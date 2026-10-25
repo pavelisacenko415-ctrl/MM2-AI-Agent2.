@@ -106,10 +106,7 @@ public class ScreenCaptureService extends Service {
                     ByteBuffer buffer = plane.getBuffer();
                     int pixelStride = plane.getPixelStride();
                     int rowStride = plane.getRowStride();
-                    int rowPadding = rowStride - pix
-
-Павел:
-elStride * width;
+                    int rowPadding = rowStride - pixelStride * width;
 
                     Bitmap padded = Bitmap.createBitmap(
                         width + rowPadding / pixelStride,
