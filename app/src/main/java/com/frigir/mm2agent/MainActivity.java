@@ -1,14 +1,20 @@
 package com.frigir.mm2agent;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
-import android.graphics.Color;
-import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.view.Gravity;
+import android.graphics.Color;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
+    private static final int CAPTURE_REQUEST = 1001;
+    private TextView status;
+
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -25,31 +31,60 @@ public class MainActivity extends Activity {
         title.setTextColor(Color.WHITE);
         title.setGravity(Gravity.CENTER);
 
-        TextView status = new TextView(this);
-        status.setText(
-            "Версия 0.1.0\n\n" +
-            "Проект запущен.\n" +
-            "Следующий этап: захват экрана и компьютерное зрение."
-        );
-        status.setTextSize(17);
+        status = new TextView(this);
         status.setTextColor(Color.LTGRAY);
+        status.setTextSize(17);
         status.setGravity(Gravity.CENTER);
         status.setPadding(0, 28, 0, 28);
+        status.setText("Версия 0.2.0\n\nЗахват экрана ещё не запускался.");
 
-        Button button = new Button(this);
-        button.setText("Проверить приложение");
-        button.setOnClickListener(v ->
-            status.setText(
-                "MM2 AI Agent работает!\n\n" +
-                "Интерфейс готов. Захват экрана и анализ игры " +
-                "будут подключены следующим этапом."
-            )
-        );
+        Button capture = new Button(this);
+        capture.setText("Захватить кадр экрана");
+        capture.setOnClickListener(v -> {
+            MediaProjectionManager manager =
+                (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
+            startActivityForResult(
+                manager.createScreenCaptureIntent(),
+                CAPTURE_REQUEST
+            );
+        });
 
         layout.addView(title);
         layout.addView(status);
-        layout.addView(button);
-
+        layout.addView(capture);
         setContentView(layout);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (status != null) {
+            String result = getSharedPreferences("agent", MODE_PRIVATE)
+                .getString("last_result", null);
+            if (result != null) status.setText(result);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode != CAPTURE_REQUEST) return;
+
+        if (resultCode != RESULT_OK || data == null) {
+            status.setText("Захват отменён. Нажми кнопку, чтобы попробовать снова.");
+            return;
+        }
+
+        Intent service = new Intent(this, ScreenCaptureService.class);
+        service.putExtra("resultCode", resultCode);
+        service.putExtra("projectionData", data);
+
+        try {
+            startForegroundService(service);
+            status.setText("Запрашиваем первый кадр…");
+        } catch (Exception e) {
+            status.setText("Не удалось запустить захват: " + e.getMessage());
+        }
     }
 }
